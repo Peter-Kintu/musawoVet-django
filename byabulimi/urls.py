@@ -1,7 +1,7 @@
 # byabulimi/urls.py
 
 from django.urls import path
-from .migrations import views
+from . import views
 from rest_framework.authtoken.views import obtain_auth_token
 
 # Define URL patterns for the API
