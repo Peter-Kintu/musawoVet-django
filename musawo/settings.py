@@ -19,7 +19,6 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(','
 # --- APPLICATION DEFINITION ---
 
 INSTALLED_APPS = [
-    'byabulimi'
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
