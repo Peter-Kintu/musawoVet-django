@@ -1,6 +1,7 @@
 # Core Frameworks
 Django>=4.2,<5.0
 djangorestframework>=3.14.0 # For the API endpoints
+Pillow>=10.0.0 # Essential for Django's ImageField
 
 # Environment Variables Management
 python-decouple>=3.8.0 # Used in settings.py for SECRET_KEY, GEMINI_API_KEY, etc.
@@ -9,13 +10,7 @@ python-decouple>=3.8.0 # Used in settings.py for SECRET_KEY, GEMINI_API_KEY, etc
 google-genai>=0.11.0 # The official Google GenAI SDK
 
 # Authentication (Used by Django REST Framework)
-djangorestframework-simplejwt>=5.3.0 # Highly recommended for production APIs instead of TokenAuth
-# Note: rest_framework.authtoken is implicitly covered by djangorestframework, but simplejwt is better
+djangorestframework-simplejwt>=5.3.0 # Highly recommended for production APIs
 
-# Database Connectors (Optional - included for completeness if using something other than default SQLite)
-# psycopg2-binary # Uncomment if you switch to PostgreSQL
-# mysqlclient # Uncomment if you switch to MySQL
-gunicorn>=21.2.0
-whitenoise>=6.6.0
-dj-database-url>=2.1.0
-psycopg2-binary>=2.9.9
+# PRODUCTION SERVER
+gunicorn>=21.0.0 # **MISSING DEPENDENCY: Required for the 'gunicorn' command to work**
