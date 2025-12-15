@@ -1,24 +1,21 @@
-# requirements.txt - Updated to fix installation errors
-
-# --- Django Core ---
+# Core Frameworks
 Django>=4.2,<5.0
-# The core Django framework
+djangorestframework>=3.14.0 # For the API endpoints
 
-# --- API & Authentication ---
-djangorestframework>=3.14.0
-# For building the REST API endpoints and serializers
+# Environment Variables Management
+python-decouple>=3.8.0 # Used in settings.py for SECRET_KEY, GEMINI_API_KEY, etc.
 
-# Replacing drf-auth-token with Simple JWT, a modern token solution
-djangorestframework-simplejwt>=5.0.0 
+# Gemini AI Integration
+google-genai>=0.11.0 # The official Google GenAI SDK
 
-# --- Google Gemini Integration ---
-google-genai>=0.11.0
-# The official Google Gemini SDK for making multimodal API calls
+# Authentication (Used by Django REST Framework)
+djangorestframework-simplejwt>=5.3.0 # Highly recommended for production APIs instead of TokenAuth
+# Note: rest_framework.authtoken is implicitly covered by djangorestframework, but simplejwt is better
 
-# --- Environment Management ---
-python-decouple>=3.8
-# To securely manage environment variables (like API Keys and SECRET_KEY) 
-
-# --- File Handling (Recommended) ---
-Pillow>=10.1.0
-# Library for image processing
+# Database Connectors (Optional - included for completeness if using something other than default SQLite)
+# psycopg2-binary # Uncomment if you switch to PostgreSQL
+# mysqlclient # Uncomment if you switch to MySQL
+gunicorn>=21.2.0
+whitenoise>=6.6.0
+dj-database-url>=2.1.0
+psycopg2-binary>=2.9.9
