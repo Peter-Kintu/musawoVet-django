@@ -1,4 +1,4 @@
-# musawo/settings.py
+# musawo / settings.py
 
 import os
 from pathlib import Path
