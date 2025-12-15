@@ -1,0 +1,24 @@
+# requirements.txt - Updated to fix installation errors
+
+# --- Django Core ---
+Django>=4.2,<5.0
+# The core Django framework
+
+# --- API & Authentication ---
+djangorestframework>=3.14.0
+# For building the REST API endpoints and serializers
+
+# Replacing drf-auth-token with Simple JWT, a modern token solution
+djangorestframework-simplejwt>=5.0.0 
+
+# --- Google Gemini Integration ---
+google-genai>=0.11.0
+# The official Google Gemini SDK for making multimodal API calls
+
+# --- Environment Management ---
+python-decouple>=3.8
+# To securely manage environment variables (like API Keys and SECRET_KEY) 
+
+# --- File Handling (Recommended) ---
+Pillow>=10.1.0
+# Library for image processing
