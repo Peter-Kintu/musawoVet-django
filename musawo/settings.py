@@ -1,36 +1,36 @@
-# musawo / settings.py
-
 import os
 from pathlib import Path
-from decouple import config # Recommended for handling environment variables
+from decouple import config  # Recommended for handling environment variables
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- SECURITY SETTINGS ---
 # Use django-decouple or similar package to load from a .env file
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-k*@^z7t6b7m9v1x0c3y5d2e4f8g0h@i$j!k%l#m&n(o)p^q&r*s')
+SECRET_KEY = config(
+    'SECRET_KEY',
+    default='django-insecure-k*@^z7t6b7m9v1x0c3y5d2e4f8g0h@i$j!k%l#m&n(o)p^q&r*s'
+)
 
 DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')
 
-
 # --- APPLICATION DEFINITION ---
-
 INSTALLED_APPS = [
+    # Django Core Apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+
     # 3rd Party Apps
-    'rest_framework', # For building the API endpoints
-    
+    'rest_framework',
+
     # Local Apps
-    'byabulimi.apps.ByabulimiConfig', # This registers the main app
+    'byabulimi.apps.ByabulimiConfig',
 ]
 
 MIDDLEWARE = [
@@ -64,7 +64,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'musawo.wsgi.application'
 ASGI_APPLICATION = 'musawo.asgi.application'
 
-
 # --- DATABASE ---
 # Using SQLite for simplicity in MVP
 DATABASES = {
@@ -74,29 +73,27 @@ DATABASES = {
     }
 }
 
-
 # --- AUTHENTICATION & VALIDATION ---
 AUTH_PASSWORD_VALIDATORS = [
-    # ... default validators
+    # Add default validators here if needed
 ]
 
-
 # --- INTERNATIONALIZATION ---
-LANGUAGE_CODE = 'en-us' # Base language, actual advice is localized via Gemini
-TIME_ZONE = 'Africa/Kampala' 
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'Africa/Kampala'
 USE_I18N = True
 USE_TZ = True
 
-
 # --- STATIC & MEDIA FILES ---
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'   # Required for collectstatic
 MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media' # Directory for user uploads (images)
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # --- CUSTOM CONFIGURATION ---
-
 # 1. Gemini API Key
-GEMINI_API_KEY = config('GEMINI_API_KEY') 
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='dummy-key')
+
 # 2. Django REST Framework Settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
