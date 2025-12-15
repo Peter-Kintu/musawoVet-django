@@ -14,7 +14,7 @@ SECRET_KEY = config(
 
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost, https://vet-doctor.onrender.com').split(',')
 
 # --- APPLICATION DEFINITION ---
 INSTALLED_APPS = [
