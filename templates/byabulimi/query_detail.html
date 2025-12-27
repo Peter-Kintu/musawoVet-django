@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Query Details - Byabulimi{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">Query Details</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Query Information -->
+                    <h5 class="text-success">Query Information</h5>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Date:</strong></div>
+                        <div class="col-sm-8">{{ query.timestamp|date:"F d, Y H:i" }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Crop:</strong></div>
+                        <div class="col-sm-8">{{ query.detected_crop }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Description:</strong></div>
+                        <div class="col-sm-8">{{ query.raw_query_text }}</div>
+                    </div>
+                    
+                    <!-- Query Image -->
+                    {% if query.image %}
+                        <div class="mb-4">
+                            <h6 class="text-success">Submitted Image</h6>
+                            <img src="{{ query.image.url }}" alt="Query Image" class="img-fluid rounded shadow-sm" style="max-height: 400px;">
+                        </div>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <!-- Diagnosis Information -->
+                    {% if advice %}
+                        <h5 class="text-success">Diagnosis & Advice</h5>
+                        
+                        <div class="alert alert-info">
+                            <strong>Diagnosis Code:</strong> {{ advice.diagnosis_code|default:"N/A" }}
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Confidence Score:</strong></div>
+                            <div class="col-sm-8">
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {{ advice.confidence_score }}%;" 
+                                         aria-valuenow="{{ advice.confidence_score }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        {{ advice.confidence_score }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong>Expert Referral:</strong></div>
+                            <div class="col-sm-8">
+                                {% if advice.is_expert_referred %}
+                                    <span class="badge bg-warning">Yes - Expert consultation recommended</span>
+                                {% else %}
+                                    <span class="badge bg-success">No - AI diagnosis sufficient</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6 class="text-success">Localized Advice (Luganda):</h6>
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    {{ advice.localized_advice }}
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <strong>Status:</strong> Diagnosis pending. Please check back later.
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-success">
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

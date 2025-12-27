@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Logged Out - Byabulimi{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row min-vh-100 align-items-center justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h2 class="text-success mb-4">Successfully Logged Out</h2>
+                    <p class="lead mb-4">
+                        You have been successfully logged out from Byabulimi.
+                    </p>
+                    <a href="{% url 'login' %}" class="btn btn-success btn-lg me-3">
+                        Login Again
+                    </a>
+                    <a href="{% url 'index' %}" class="btn btn-outline-success btn-lg">
+                        Go to Homepage
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

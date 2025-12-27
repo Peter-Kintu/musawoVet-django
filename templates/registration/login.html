@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Login - Byabulimi{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row min-vh-100 align-items-center justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h2 class="text-center mb-4 text-success">Login to Byabulimi</h2>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        
+                        <button type="submit" class="btn btn-success w-100 mb-3">
+                            Login
+                        </button>
+                    </form>
+                    
+                    <div class="text-center">
+                        <a href="{% url 'password_reset' %}" class="text-muted">
+                            Forgot Password?
+                        </a>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <p class="text-center text-muted mb-0">
+                        Note: This web portal is for viewing queries. Use the mobile app to submit new consultations.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

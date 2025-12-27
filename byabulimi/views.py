@@ -3,6 +3,10 @@
 import base64
 from decimal import Decimal
 from django.core.files.base import ContentFile
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import login, authenticate
+from django.contrib import messages
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from .models import Farmer, Query, Advice
@@ -11,7 +15,58 @@ from .serializers import (
     QuerySubmitSerializer, QueryHistorySerializer
 )
 # Import the Gemini function and the file helper
-from .ai_service import generate_diagnosis, file_to_part 
+from .ai_service import generate_diagnosis, file_to_part
+
+# --- Web Views for Portal ---
+
+def index(request):
+    """Homepage view."""
+    return render(request, 'index.html')
+
+@login_required
+def dashboard(request):
+    """Dashboard view for authenticated users."""
+    try:
+        farmer = request.user.farmer
+        recent_queries = Query.objects.filter(farmer=farmer).order_by('-timestamp')[:5]
+        context = {
+            'farmer': farmer,
+            'recent_queries': recent_queries,
+        }
+        return render(request, 'byabulimi/dashboard.html', context)
+    except Farmer.DoesNotExist:
+        messages.error(request, 'Farmer profile not found.')
+        return redirect('index')
+
+@login_required
+def profile(request):
+    """Profile view for authenticated users."""
+    try:
+        farmer = request.user.farmer
+        context = {'farmer': farmer}
+        return render(request, 'byabulimi/profile.html', context)
+    except Farmer.DoesNotExist:
+        messages.error(request, 'Farmer profile not found.')
+        return redirect('index')
+
+@login_required
+def query_detail(request, query_id):
+    """Query detail view."""
+    try:
+        farmer = request.user.farmer
+        query = get_object_or_404(Query, id=query_id, farmer=farmer)
+        try:
+            advice = query.advice
+        except Advice.DoesNotExist:
+            advice = None
+        context = {
+            'query': query,
+            'advice': advice,
+        }
+        return render(request, 'byabulimi/query_detail.html', context)
+    except Farmer.DoesNotExist:
+        messages.error(request, 'Farmer profile not found.')
+        return redirect('index')
 
 # --- 1. Authentication & Profile Views (Unchanged) ---
 

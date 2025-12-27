@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Byabulimi{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row min-vh-100 align-items-center">
+        <div class="col-lg-6">
+            <h1 class="display-4 fw-bold text-success mb-4">
+                Welcome to Byabulimi
+            </h1>
+            <p class="lead mb-4">
+                AI-Powered Veterinary Consultation System for Ugandan Farmers
+            </p>
+            <p class="mb-4">
+                Get instant diagnoses for your livestock health issues using advanced AI technology. 
+                Simply upload a photo and describe the symptoms to receive expert advice in your local language.
+            </p>
+            
+            {% if user.is_authenticated %}
+                <a href="{% url 'dashboard' %}" class="btn btn-success btn-lg me-3">
+                    Go to Dashboard
+                </a>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn btn-success btn-lg me-3">
+                    Login
+                </a>
+                <a href="{% url 'admin:index' %}" class="btn btn-outline-success btn-lg">
+                    Admin Portal
+                </a>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h3 class="card-title text-center mb-4">Features</h3>
+                    <ul class="list-unstyled">
+                        <li class="mb-3">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>AI-Powered Diagnosis:</strong> Upload photos and get instant veterinary advice
+                        </li>
+                        <li class="mb-3">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Multi-Language Support:</strong> Receive advice in Luganda or English
+                        </li>
+                        <li class="mb-3">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Query History:</strong> Track all your consultations in one place
+                        </li>
+                        <li class="mb-3">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Expert Referrals:</strong> Get connected to veterinary experts when needed
+                        </li>
+                        <li class="mb-3">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Mobile App Integration:</strong> Access via our Flutter mobile application
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Information Section -->
+    <div class="row py-5">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h5 class="alert-heading">For Developers</h5>
+                <p class="mb-0">
+                    This system provides REST APIs for mobile app integration. 
+                    API documentation is available at <code>/api/v1/</code>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

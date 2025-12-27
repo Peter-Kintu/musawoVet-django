@@ -31,10 +31,16 @@ INSTALLED_APPS = [
 
     # 3rd Party Apps
     'rest_framework',
+    'crispy_forms',
+    'crispy_bootstrap5',
 
     # Local Apps
     'byabulimi.apps.ByabulimiConfig',
 ]
+
+# Crispy Forms Configuration
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -51,7 +57,7 @@ ROOT_URLCONF = 'musawo.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -109,3 +115,8 @@ REST_FRAMEWORK = {
 
 # 3. Default Primary Key Field Type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# 4. Authentication URLs
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/'
