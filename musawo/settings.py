@@ -31,6 +31,7 @@ INSTALLED_APPS = [
 
     # 3rd Party Apps
     'rest_framework',
+    'rest_framework.authtoken',  # FIXED: Required for Token Authentication models
     'crispy_forms',
     'crispy_bootstrap5',
 
@@ -83,9 +84,7 @@ DATABASES = {
 }
 
 # --- AUTHENTICATION & VALIDATION ---
-AUTH_PASSWORD_VALIDATORS = [
-    # Add default validators here if needed
-]
+AUTH_PASSWORD_VALIDATORS = []
 
 # --- INTERNATIONALIZATION ---
 LANGUAGE_CODE = 'en-us'
