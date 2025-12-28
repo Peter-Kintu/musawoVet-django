@@ -1,17 +1,21 @@
 # byabulimi/ai_service.py
 
 import json
+import logging
 from google import genai
 from django.conf import settings
 from .ai_config import SYSTEM_INSTRUCTION, DIAGNOSIS_OUTPUT_SCHEMA, GEMINI_MODEL
 
+# Setup logging for production traceability
+logger = logging.getLogger(__name__)
+
 # Initialize the Gemini Client using the key from Django settings
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
-# --- NEW HELPER FUNCTION ---
+# --- HELPER FUNCTION ---
 def file_to_part(file_content, mime_type="image/jpeg"):
     """
-    Converts raw file content (bytes) into a genai.types.Part object.
+    Converts raw file content (bytes) into a genai.types.Part object for the multimodal prompt.
     """
     return genai.types.Part.from_bytes(
         data=file_content,
@@ -20,21 +24,22 @@ def file_to_part(file_content, mime_type="image/jpeg"):
 
 def generate_diagnosis(image_part, query_text: str, detected_crop: str, language_code: str):
     """
-    Constructs the multimodal prompt and calls the Gemini API.
+    Constructs the multimodal prompt and calls the Gemini API to generate a diagnosis.
+    Returns a dictionary matching the application's Advice schema.
     """
     
-    # --- COMPLETED PROMPT CONSTRUCTION ---
+    # --- PROMPT CONSTRUCTION ---
+    # We explicitly tell the AI which language to use for the localized_advice field.
     prompt_parts = [
         image_part,
         (
-            f"Diagnose the issue for the '{detected_crop}' based on the image and the farmer's observation. "
-            f"Observation: '{query_text if query_text else 'No specific observation provided.'}'. "
-            f"Provide actionable, culturally appropriate advice."
+            f"Context: The farmer is reporting an issue with their '{detected_crop}'. "
+            f"Farmer's Observation: '{query_text if query_text else 'No specific observation provided.'}'. "
+            f"Task: Analyze the image and the observation to provide a diagnosis and culturally relevant advice."
         ),
-        f"The required output language for localized_advice is: **{language_code}**.",
-        f"Strictly output the result as a single JSON object matching the required schema."
+        f"Language Requirement: The 'localized_advice' field MUST be written in the language associated with code: {language_code}.",
+        "Strictly output the result as a single JSON object matching the required schema. Do not include markdown code blocks."
     ]
-    # -----------------------------------
 
     try:
         response = client.models.generate_content(
@@ -47,17 +52,20 @@ def generate_diagnosis(image_part, query_text: str, detected_crop: str, language
                 temperature=0.2 
             )
         )
-        # The API returns a string containing the JSON.
+        
+        # Parse the JSON response from the Gemini API
         return json.loads(response.text)
 
     except Exception as e:
-        print(f"Gemini API Error: {e}")
-        # Return the safe error structure
-        # NOTE: We use the key 'localized_advice_luganda' as defined in ai_config.py
+        # Use logging instead of print for production-grade error tracking
+        logger.error(f"Gemini API Error: {e}", exc_info=True)
+        
+        # Return a safe error structure that prevents the mobile app from crashing.
+        # Note: We use 'localized_advice' to match the Django model and Flutter API model.
         return {
             "diagnosis_code": "ERROR-API",
             "confidence_score": 0.0,
-            "localized_advice_luganda": f"Kyetaagisa okwongera okukola okunoonyereza. (Processing error.)",
+            "localized_advice": "Waliwo kiremya mu mbeera y'obudde. Gezaako nate emabale. (A processing error occurred.)",
             "is_expert_referral_needed": True,
-            "english_summary": f"API or processing error: {str(e)}"
+            "english_summary": f"Gemini API or processing error: {str(e)}"
         }

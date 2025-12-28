@@ -5,27 +5,27 @@ from decimal import Decimal
 from django.core.files.base import ContentFile
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, authenticate
 from django.contrib import messages
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+
 from .models import Farmer, Query, Advice
 from .serializers import (
     FarmerRegisterSerializer, FarmerProfileSerializer, 
     QuerySubmitSerializer, QueryHistorySerializer
 )
-# Import the Gemini function and the file helper
+# Import the Gemini function and the file helper from our AI service layer
 from .ai_service import generate_diagnosis, file_to_part
 
-# --- Web Views for Portal ---
+# --- Web Views for Admin/Staff Portal ---
 
 def index(request):
-    """Homepage view."""
+    """Simple homepage view."""
     return render(request, 'index.html')
 
 @login_required
 def dashboard(request):
-    """Dashboard view for authenticated users."""
+    """Web dashboard showing recent activity for the logged-in farmer."""
     try:
         farmer = request.user.farmer
         recent_queries = Query.objects.filter(farmer=farmer).order_by('-timestamp')[:5]
@@ -40,7 +40,7 @@ def dashboard(request):
 
 @login_required
 def profile(request):
-    """Profile view for authenticated users."""
+    """View to manage farmer profile settings via web."""
     try:
         farmer = request.user.farmer
         context = {'farmer': farmer}
@@ -51,14 +51,12 @@ def profile(request):
 
 @login_required
 def query_detail(request, query_id):
-    """Query detail view."""
+    """Detailed view for a specific diagnostic query."""
     try:
         farmer = request.user.farmer
         query = get_object_or_404(Query, id=query_id, farmer=farmer)
-        try:
-            advice = query.advice
-        except Advice.DoesNotExist:
-            advice = None
+        # Attempt to get advice; if AI hasn't responded, it will be None
+        advice = getattr(query, 'advice', None)
         context = {
             'query': query,
             'advice': advice,
@@ -68,16 +66,17 @@ def query_detail(request, query_id):
         messages.error(request, 'Farmer profile not found.')
         return redirect('index')
 
-# --- 1. Authentication & Profile Views (Unchanged) ---
+
+# --- 1. Authentication & Profile API Views ---
 
 class FarmerRegisterAPIView(generics.CreateAPIView):
-    """API view to register a new farmer."""
+    """Handles new farmer registration (User + Farmer profile creation)."""
     queryset = Farmer.objects.all()
     serializer_class = FarmerRegisterSerializer
     permission_classes = [permissions.AllowAny]
 
 class FarmerProfileAPIView(generics.RetrieveAPIView):
-    """API view to retrieve the profile of the authenticated farmer."""
+    """Retrieves current profile data for the mobile app."""
     serializer_class = FarmerProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -87,51 +86,58 @@ class FarmerProfileAPIView(generics.RetrieveAPIView):
         except Farmer.DoesNotExist:
             return None
 
-# --- 2. Core Diagnostic Query Views (UPDATED) ---
+
+# --- 2. Core Diagnostic Query API Views ---
 
 class QuerySubmitAPIView(generics.CreateAPIView):
-    """API view to receive the multimodal query and trigger Gemini diagnosis."""
+    """
+    Primary endpoint for the Flutter app. 
+    Receives image/text, saves locally, calls Gemini, and returns diagnosis.
+    """
     serializer_class = QuerySubmitSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def _create_advice(self, query: Query, diagnosis_output: dict):
-        """Helper to create and save the Advice object."""
+        """Helper to convert Gemini's JSON output into a Django Advice object."""
         
-        advice_instance = Advice.objects.create(
+        # We extract 'localized_advice_luganda' but fall back to summary if missing
+        advice_text = diagnosis_output.get("localized_advice_luganda") or \
+                     diagnosis_output.get("english_summary") or "No advice returned."
+
+        return Advice.objects.create(
             query=query,
             diagnosis_code=diagnosis_output.get("diagnosis_code"),
-            # Convert float from Gemini output to Decimal for the Django model
+            # Convert float/int from AI to Decimal for high-precision model storage
             confidence_score=Decimal(str(diagnosis_output.get("confidence_score", 0.0))),
-            # The key is 'localized_advice_luganda' from ai_config, mapped to 'localized_advice' in models
-            localized_advice=diagnosis_output.get("localized_advice_luganda", diagnosis_output.get("english_summary", "No advice returned.")),
+            localized_advice=advice_text,
             is_expert_referred=diagnosis_output.get("is_expert_referral_needed", False),
-            gemini_prompt=f"Query: {query.raw_query_text}, Crop: {query.detected_crop}"
+            english_summary=diagnosis_output.get("english_summary")
         )
-        return advice_instance
 
     def post(self, request, *args, **kwargs):
-        # The request data is expected to be JSON
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # 1. Get validated data
+        # 1. Extract Validated Data
         base64_data = serializer.validated_data.get('image_base64')
         query_text = serializer.validated_data.get('query_text')
         detected_crop = serializer.validated_data.get('detected_crop')
         farmer = self.request.user.farmer
-        # local_id = serializer.validated_data.get('local_id')
 
-        # 2. Decode Base64 image and prepare Django ContentFile
+        # 2. Decode Image for Local Storage
         try:
-            # Decode the base64 string into raw bytes
             image_bytes = base64.b64decode(base64_data)
-            # Create a ContentFile for Django's ImageField
-            image_file = ContentFile(image_bytes, name=f'{farmer.phone_number}_{detected_crop}_query.jpg')
+            image_file = ContentFile(
+                image_bytes, 
+                name=f'{farmer.phone_number}_{detected_crop}_query.jpg'
+            )
         except Exception as e:
-            return Response({"message": f"Invalid image format: {e}"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": f"Malformed image data: {e}"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-
-        # 3. Save the raw query locally (before the AI call)
+        # 3. Create Local Database Entry
         new_query = Query.objects.create(
             farmer=farmer,
             image=image_file,
@@ -139,7 +145,8 @@ class QuerySubmitAPIView(generics.CreateAPIView):
             detected_crop=detected_crop,
         )
         
-        # 4. Prepare for and call the AI service
+        # 4. Multimodal AI Processing
+        # Convert raw bytes to Gemini-compatible Part
         image_part = file_to_part(image_bytes)
         
         diagnosis_output = generate_diagnosis(
@@ -149,49 +156,49 @@ class QuerySubmitAPIView(generics.CreateAPIView):
             language_code=farmer.language_code
         )
         
-        # 5. Create and save the Advice object from the Gemini output
+        # 5. Link AI Advice to Query
         advice_instance = self._create_advice(new_query, diagnosis_output)
 
-        # 6. Return the final structured response to the Flutter app (synchronous)
-        # Matches the expected Flutter DiagnosisResponse structure
+        # 6. Structured Synchronous Response (Matches Flutter 'DiagnosisResponse')
         return Response({
             "query_id": new_query.id,
-            "message": "Diagnosis complete.",
+            "message": "Diagnosis generated successfully.",
             "localized_advice": advice_instance.localized_advice,
-            "english_summary": diagnosis_output.get("english_summary"),
-            "confidence_score": float(advice_instance.confidence_score), # Convert Decimal back to float
+            "english_summary": advice_instance.english_summary,
+            "confidence_score": float(advice_instance.confidence_score),
             "is_expert_referred": advice_instance.is_expert_referred,
             "diagnosis_code": advice_instance.diagnosis_code,
         }, status=status.HTTP_201_CREATED) 
 
 class QueryHistoryAPIView(generics.ListAPIView):
-    """API view to retrieve the authenticated farmer's query history."""
+    """Returns a list of all past queries and their results for the farmer."""
     serializer_class = QueryHistorySerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return Query.objects.filter(farmer=self.request.user.farmer).order_by('-timestamp')
 
-# --- 3. Market & Weather Data Views (Stubs - Unchanged) ---
+
+# --- 3. Market & Weather Data Views (Regional Stubs) ---
 
 class WeatherAlertsAPIView(generics.RetrieveAPIView):
-    """Stub for retrieving regional weather/pest data."""
+    """Returns regional weather risks based on the farmer's registered region."""
     permission_classes = [permissions.IsAuthenticated]
     
     def retrieve(self, request, *args, **kwargs):
-        # Logic to pull cached data for request.user.farmer.region
+        # Stub: Integration with OpenWeather or similar would happen here
         return Response({
             "region": request.user.farmer.region,
-            "forecast_7_day": "Sunny with isolated thunderstorms.",
-            "pest_risk": "Moderate risk of Fall Armyworm in maize fields.",
+            "forecast_7_day": "Light rain expected; good for planting maize.",
+            "pest_risk": "Low risk for current season.",
         })
 
 class MarketPricesAPIView(generics.RetrieveAPIView):
-    """Stub for retrieving local market prices."""
+    """Returns live local market prices for crops/livestock."""
     permission_classes = [permissions.IsAuthenticated]
     
     def retrieve(self, request, *args, **kwargs):
-        # Logic to pull cached price data for request.user.farmer.region
+        # Stub: Data would be pulled from a scraped or API-driven market database
         return Response({
             "region": request.user.farmer.region,
             "prices": [
