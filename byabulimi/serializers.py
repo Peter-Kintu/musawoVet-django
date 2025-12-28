@@ -1,5 +1,6 @@
 # byabulimi/serializers.py
 
+import re
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Farmer, Query, Advice
@@ -8,35 +9,41 @@ from .models import Farmer, Query, Advice
 
 class FarmerRegisterSerializer(serializers.ModelSerializer):
     """
-    Updated to handle dual-creation of a Django User and a Farmer profile.
-    This ensures that passwords are encrypted and login works.
+    Handles dual-creation of a Django User and a Farmer profile.
+    Includes normalization to ensure login credentials match.
     """
-    # These fields are sent by Flutter but aren't in the Farmer model directly
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
     full_name = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = Farmer
-        # fields list must match what the Flutter ApiService sends
+        # fields list matches what the Flutter ApiService sends
         fields = ['phone_number', 'password', 'full_name', 'language_code', 'region']
 
     def create(self, validated_data):
-        # 1. Extract data for the User account
+        # 1. Extract data
         password = validated_data.pop('password')
         full_name = validated_data.pop('full_name', '')
-        phone = validated_data.get('phone_number')
+        raw_phone = validated_data.get('phone_number')
 
-        # 2. Create the ACTUAL Django User (This makes login work)
-        # We use the phone number as the 'username' for the token auth system
+        # 2. NORMALIZE PHONE NUMBER
+        # This keeps the '+' and digits, removing spaces/dashes.
+        # This MUST match the _normalizePhone logic in your Flutter ApiService.
+        clean_phone = re.sub(r'[^\d+]', '', raw_phone)
+
+        # 3. Create the ACTUAL Django User
+        # We use the cleaned phone number as the 'username'
         user = User.objects.create_user(
-            username=phone,
+            username=clean_phone,
             password=password,
             first_name=full_name
         )
 
-        # 3. Create the Farmer profile linked to that User
-        # NOTE: Ensure your Farmer model in models.py has a OneToOneField to User
+        # 4. Create the Farmer profile linked to that User
+        # We update the phone_number in validated_data to the clean version too
+        validated_data['phone_number'] = clean_phone
         farmer = Farmer.objects.create(user=user, **validated_data)
+        
         return farmer
 
 class FarmerProfileSerializer(serializers.ModelSerializer):
@@ -75,4 +82,4 @@ class QuerySubmitSerializer(serializers.Serializer):
     image_base64 = serializers.CharField() 
     query_text = serializers.CharField(max_length=500, required=False, allow_blank=True)
     detected_crop = serializers.CharField(max_length=50)
-    local_id = serializers.IntegerField() # Flutter's local ID for tracking sync status
+    local_id = serializers.IntegerField()
